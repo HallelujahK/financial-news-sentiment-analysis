@@ -93,7 +93,7 @@ class FinancialNewsEDA:
 
         # Drop rows where 'year' or 'month' or 'day' is NaN
         self.data = self.data.dropna(subset=['year', 'month', 'day'])
-        
+
         # Analyze by year
         plt.figure(figsize=(12, 6))
         sns.countplot(data=self.data, x='year', palette='viridis')
@@ -143,18 +143,58 @@ class FinancialNewsEDA:
         plt.show()
     
     def analyze_publishers(self):
-        """Analyze the contribution of different publishers."""
-        publisher_analysis = self.data.groupby('publisher').size().sort_values(ascending=False)
+        """Analyze and visualize publisher data."""
+        # Drop rows where 'publisher' is NaN
+        self.data = self.data.dropna(subset=['publisher'])
+
+        # Count the number of articles per publisher
+        publisher_counts = self.data['publisher'].value_counts()
+        top_publishers = publisher_counts.head(10)
+
+        # Plot the top 10 publishers
+        plt.figure(figsize=(14, 8))
+        sns.barplot(x=top_publishers.index, y=top_publishers.values, palette='viridis')
+        plt.xlabel('Publisher', fontsize=14)
+        plt.ylabel('Number of Articles', fontsize=14)
+        plt.title('Top 10 Publishers by Number of Articles', fontsize=16)
+        plt.xticks(rotation=45)
+        plt.show()
+
+        # Analyze the type of news reported by each publisher
+        # For simplicity, we'll use a basic approach to categorize news types
+        self.data['news_type'] = self.data['headline'].apply(self.categorize_news_type)
+        publisher_news_type = self.data.groupby('publisher')['news_type'].value_counts().unstack().fillna(0)
         
-        plt.figure(figsize=(12, 6))
-        publisher_analysis.head(10).plot(kind='bar')
-        plt.title('Top 10 Publishers by Number of Articles')
-        plt.xlabel('Publisher')
-        plt.ylabel('Number of Articles')
+        print("News Types by Publisher:")
+        print(publisher_news_type.head())
+        # If email addresses are used, extract and analyze unique domains
+        self.data['domain'] = self.data['publisher'].apply(self.extract_domain)
+        domain_counts = self.data['domain'].value_counts()
+        top_domains = domain_counts.head(10)
+
+        # Plot the top 10 domains
+        plt.figure(figsize=(14, 8))
+        sns.barplot(x=top_domains.index, y=top_domains.values, palette='viridis')
+        plt.xlabel('Domain', fontsize=14)
+        plt.ylabel('Number of Publishers', fontsize=14)
+        plt.title('Top 10 Domains by Number of Publishers', fontsize=16)
+        plt.xticks(rotation=45)
         plt.show()
     
-    def analyze_domains(self):
-        """Analyze unique domains if publishers are identified by email addresses."""
-        self.data['domain'] = self.data['publisher'].apply(lambda x: x.split('@')[-1] if '@' in x else x)
-        domain_analysis = self.data['domain'].value_counts()
-        print("Top 10 Domains:\n", domain_analysis.head(10))
+    def categorize_news_type(self, headline):
+        """Categorize the news type based on keywords in the headline."""
+        if 'FDA approval' in headline:
+            return 'FDA Approval'
+        elif 'price target' in headline:
+            return 'Price Target'
+        elif 'earnings' in headline:
+            return 'Earnings'
+        else:
+            return 'Other'
+
+    def extract_domain(self, publisher):
+        """Extract domain from an email address or URL."""
+        if pd.isna(publisher):
+            return 'Unknown'
+        match = re.search(r'@([a-zA-Z0-9.-]+)', publisher)
+        return match.group(1) if match else 'Unknown'

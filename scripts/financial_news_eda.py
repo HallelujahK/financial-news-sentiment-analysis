@@ -25,8 +25,10 @@ class FinancialNewsEDA:
         self.data['year'] = self.data['date'].dt.year
         self.data['month'] = self.data['date'].dt.month
         self.data['day'] = self.data['date'].dt.day
-        self.data['weekday'] = self.data['date'].dt.weekday  # Monday=0, Sunday=6
+        self.data['weekday'] = self.data['date'].dt.weekday
         self.data['hour'] = self.data['date'].dt.hour
+
+
 
     def compute_headline_length(self):
         """Compute and summarize basic statistics for headline lengths."""
@@ -88,6 +90,10 @@ class FinancialNewsEDA:
         # Set the aesthetics for the plots
         sns.set(style="whitegrid")
 
+
+        # Drop rows where 'year' or 'month' or 'day' is NaN
+        self.data = self.data.dropna(subset=['year', 'month', 'day'])
+        
         # Analyze by year
         plt.figure(figsize=(12, 6))
         sns.countplot(data=self.data, x='year', palette='viridis')

@@ -1,10 +1,11 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 
-class DescriptiveStat:
-    def __init__(self, filepath):
-        self.data = pd.read_csv(filepath)
+
+class DescStat:
+    def __init__(self, data):
+        if not isinstance(data, pd.DataFrame):
+            raise ValueError("Data must be a pandas DataFrame")
+        self.data = data
 
     def compute_headline_length(self):
         """Compute and summarize basic statistics for headline lengths."""

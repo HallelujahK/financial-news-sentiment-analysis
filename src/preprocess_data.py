@@ -1,7 +1,9 @@
-import pandas as pd
 import re
-import numpy as np
 from urllib.parse import urlparse
+
+import numpy as np
+import pandas as pd
+
 
 class DataPreprocessor:
     """
@@ -32,7 +34,7 @@ class DataPreprocessor:
         Runs all preprocessing steps in the correct order.
     """
 
-    def __init__(self, data):
+    def __init__(self, filepath):
         """
         Constructs all the necessary attributes for the DataPreprocessor object.
 
@@ -41,15 +43,18 @@ class DataPreprocessor:
         data : pd.DataFrame
             The dataset containing financial news.
         """
-        self.data = data
-
+        self.filepath = filepath
+        self.data = pd.read_csv(filepath)
+    
     def handle_missing_values(self):
-        """Handles missing values by removing rows with any missing data."""
-        self.data.dropna(inplace=True)
+        """Handles missing values from 'headline' and 'date' by removing rows with any missing data."""
+        self.data = self.data.dropna(subset=['headline', 'date'])
 
     def convert_date_column(self):
         """Converts the 'date' column to datetime format."""
-        self.data['date'] = pd.to_datetime(self.data['date'], errors='coerce')
+        self.data['date'] = pd.to_datetime(self.data['date'], utc = True, errors='coerce')
+        # Removes rows with invalid dates
+        self.data = self.data.dropna(subset=['date'])
 
     def clean_text_columns(self):
         """
@@ -58,6 +63,7 @@ class DataPreprocessor:
         """
         # Trim whitespace and replace underscores in the 'publisher' column
         self.data['publisher'] = self.data['publisher'].str.strip().str.replace('_', ' ')
+
         # Normalize the 'publisher' and 'headline' columns to lowercase
         self.data['publisher'] = self.data['publisher'].str.lower()
         self.data['headline'] = self.data['headline'].str.lower()
@@ -74,10 +80,12 @@ class DataPreprocessor:
         """Removes duplicate rows from the dataset."""
         self.data.drop_duplicates(subset=['headline', 'url', 'date'], inplace=True)
 
+    
     def validate_and_clean_urls(self):
         """Validates and cleans the URLs in the 'url' column."""
         # Ensure URLs are properly formatted and handle any malformed URLs
         self.data['url'] = self.data['url'].apply(lambda x: x if bool(urlparse(x).scheme) else np.nan)
+
         # Remove rows with invalid URLs
         self.data.dropna(subset=['url'], inplace=True)
 
@@ -102,8 +110,4 @@ class DataPreprocessor:
         self.remove_duplicates()
         self.validate_and_clean_urls()
         self.extract_domain_from_email()
-
-# Example usage:
-# df = pd.read_csv('financial_news.csv')
-# preprocessor = DataPreprocessor(df)
-# preprocessor.preprocess()
+        return self.data
